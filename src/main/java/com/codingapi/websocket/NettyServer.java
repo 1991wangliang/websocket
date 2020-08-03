@@ -1,5 +1,8 @@
 package com.codingapi.websocket;
 
+import com.codingapi.websocket.handler.WebSocketHandler;
+import com.codingapi.websocket.handler.WebSocketProtocolDecoder;
+import com.codingapi.websocket.handler.WebSocketProtocolEncoder;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelInitializer;
@@ -14,6 +17,7 @@ import io.netty.handler.codec.http.websocketx.WebSocketServerProtocolHandler;
 import io.netty.handler.stream.ChunkedWriteHandler;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 /**
@@ -27,6 +31,8 @@ public class NettyServer {
 
     private int port = 8800;
 
+    @Autowired
+    private WebSocketHandler webSocketHandler;
 
     @SneakyThrows
     public void start() {
@@ -40,12 +46,15 @@ public class NettyServer {
                     .childHandler(new ChannelInitializer<SocketChannel>() {
                         @Override
                         protected void initChannel(SocketChannel ch) throws Exception {
+
                             ch.pipeline().addLast(new HttpServerCodec());
                             ch.pipeline().addLast(new ChunkedWriteHandler());
                             ch.pipeline().addLast(new HttpObjectAggregator(8192));
                             ch.pipeline().addLast(new WebSocketServerProtocolHandler("/websocket",
                                     "websocket", true, 65536 * 10));
-                            ch.pipeline().addLast(new MyWebSocketHandler());
+                            ch.pipeline().addLast(new WebSocketProtocolDecoder());
+                            ch.pipeline().addLast(new WebSocketProtocolEncoder());
+                            ch.pipeline().addLast(webSocketHandler);
                         }
                     });
 
